@@ -1,0 +1,17 @@
+[project]
+name = "thelook-analytics"
+version = "0.1.0"
+description = "dbt pipeline and analysis of The Look eCommerce dataset"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "dbt==2.0.11",
+    "duckdb==1.5.4",
+]
+
+[project.optional-dependencies]
+analysis = [
+    "ipykernel>=7.4.0,<8",
+    "matplotlib>=3.11.2,<4",
+    "pandas>=3.1.1,<4",
+]
