@@ -15,3 +15,28 @@ analysis = [
     "matplotlib>=3.11.2,<4",
     "pandas>=3.1.1,<4",
 ]
+
+[dependency-groups]
+dev = [
+    "sqlfluff>=4.5.0",
+]
+
+[tool.sqlfluff.core]
+dialect = "duckdb"
+templater = "jinja"
+rules = "capitalisation"
+
+[tool.sqlfluff.rules.capitalisation.keywords]
+capitalisation_policy = "upper"
+
+[tool.sqlfluff.rules.capitalisation.identifiers]
+extended_capitalisation_policy = "lower"
+
+[tool.sqlfluff.rules.capitalisation.functions]
+extended_capitalisation_policy = "upper"
+
+[tool.sqlfluff.rules.capitalisation.types]
+extended_capitalisation_policy = "upper"
+
+[tool.sqlfluff.rules.capitalisation.literals]
+    capitalisation_policy = "upper"

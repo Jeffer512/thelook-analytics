@@ -1,0 +1,17 @@
+name: thelook_analytics
+version: "0.1.0"
+config-version: 2
+
+profile: thelook_analytics
+
+model-paths: ["models"]
+target-path: "target"
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+models:
+  thelook_analytics:
+    staging:
+      +materialized: view
+      +schema: staging

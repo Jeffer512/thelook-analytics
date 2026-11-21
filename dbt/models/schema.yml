@@ -1,0 +1,198 @@
+version: 2
+
+sources:
+  - name: thelook
+    description: >
+      1:1 landing tables from the pinned Kaggle TheLook snapshot, loaded by
+      load.py. DuckDB loads all as varchar; staging applies the explicit
+      type contract.
+    schema: raw
+    tables:
+      - name: distribution_centers
+      - name: events
+      - name: inventory_items
+      - name: order_items
+      - name: orders
+      - name: products
+      - name: users
+
+models:
+  - name: stg_distribution_centers
+    description: One row per distribution center.
+    columns:
+      - name: distribution_center_id
+        description: Primary key.
+        tests: [unique, not_null]
+      - name: distribution_center_name
+        tests: [not_null]
+
+  - name: stg_products
+    description: One row per product.
+    columns:
+      - name: product_id
+        description: Primary key.
+        tests: [unique, not_null]
+      - name: product_sku
+        description: Natural product code. Should also be unique.
+        tests: [unique, not_null]
+      - name: unit_cost
+        tests: [not_null]
+      - name: retail_price
+        tests: [not_null]
+      - name: distribution_center_id
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_distribution_centers')
+                field: distribution_center_id
+
+  - name: stg_users
+    description: One row per registered user.
+    columns:
+      - name: user_id
+        description: Primary key.
+        tests: [unique, not_null]
+      - name: email
+        tests: [not_null]
+      - name: age
+        tests: [not_null]
+      - name: gender
+        tests:
+          - accepted_values:
+              arguments:
+                values: [m, f]
+      - name: registered_at
+        tests: [not_null]
+
+  - name: stg_orders
+    description: >
+      One row per order. `ordered_at` is the authoritative order timestamp;
+      lifecycle timestamps are null until the order reaches that stage.
+    columns:
+      - name: order_id
+        description: Primary key.
+        tests: [unique, not_null]
+      - name: user_id
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_users')
+                field: user_id
+      - name: order_status
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [shipped, complete, processing, cancelled, returned]
+      - name: order_gender
+        tests:
+          - accepted_values:
+              arguments:
+                values: [m, f]
+      - name: ordered_at
+        tests: [not_null]
+      - name: item_count
+        tests: [not_null]
+
+  - name: stg_order_items
+    description: >
+      One row per order item. `item_created_at` is the item row timestamp and
+      is not the same as `stg_orders.ordered_at`.
+    columns:
+      - name: order_item_id
+        description: Primary key.
+        tests: [unique, not_null]
+      - name: order_id
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_orders')
+                field: order_id
+      - name: user_id
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_users')
+                field: user_id
+      - name: product_id
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_products')
+                field: product_id
+      - name: inventory_item_id
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_inventory_items')
+                field: inventory_item_id
+      - name: item_status
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [shipped, complete, processing, cancelled, returned]
+      - name: item_created_at
+        tests: [not_null]
+      - name: sale_price
+        tests: [not_null]
+
+  - name: stg_inventory_items
+    description: >
+      One row per inventory unit. Use order_items for sales; `sold_at` is not a
+      reliable sales proxy in this snapshot.
+    columns:
+      - name: inventory_item_id
+        description: Primary key.
+        tests: [unique, not_null]
+      - name: product_id
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_products')
+                field: product_id
+      - name: product_distribution_center_id
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_distribution_centers')
+                field: distribution_center_id
+      - name: unit_cost
+        tests: [not_null]
+      - name: stocked_at
+        tests: [not_null]
+
+  - name: stg_events
+    description: >
+      One row per clickstream event. `user_id` is null for anonymous sessions,
+      so the user relationship test ignores nulls.
+    columns:
+      - name: event_id
+        description: Primary key.
+        tests: [unique, not_null]
+      - name: user_id
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_users')
+                field: user_id
+      - name: session_id
+        tests: [not_null]
+      - name: sequence_number
+        tests: [not_null]
+      - name: event_at
+        tests: [not_null]
+      - name: event_type
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [home, department, product, cart, purchase, cancel]
