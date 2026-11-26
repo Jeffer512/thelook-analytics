@@ -1,0 +1,85 @@
+version: 2
+
+models:
+  - name: order_items
+    description: One row per order item, with order, product, and user attributes denormalized in.
+    columns:
+      - name: order_item_id
+        description: Primary key.
+        tests: [unique, not_null]
+      - name: order_id
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('orders')
+                field: order_id
+      - name: user_id
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('int_users')
+                field: user_id
+      - name: order_status
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [shipped, complete, processing, cancelled, returned]
+      - name: gross_revenue
+        tests: [not_null]
+      - name: realized_revenue
+        tests: [not_null]
+      - name: returned_revenue
+        tests: [not_null]
+
+  - name: orders
+    description: One row per order, with order-level totals and denormalized user attributes.
+    columns:
+      - name: order_id
+        description: Primary key.
+        tests: [unique, not_null]
+      - name: user_id
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('int_users')
+                field: user_id
+      - name: order_status
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [shipped, complete, processing, cancelled, returned]
+      - name: item_count
+        description: Declared item count from stg_orders; reconciled by a staging singular test.
+        tests: [not_null]
+      - name: gross_revenue
+        tests: [not_null]
+      - name: realized_revenue
+        tests: [not_null]
+      - name: returned_revenue
+        tests: [not_null]
+
+  - name: customers
+    description: >
+      One row per registered user, including the 19,956 users with no orders.
+      In this snapshot every purchaser is a registered user, so all buyers are
+      present here. Lifetime order metrics come from orders and are zero for 
+      users without orders.
+    columns:
+      - name: user_id
+        description: Primary key.
+        tests: [unique, not_null]
+      - name: count_lifetime_orders
+        tests: [not_null]
+      - name: is_repeat_buyer
+        tests: [not_null]
+      - name: has_ordered
+        tests: [not_null]
+      - name: count_lifetime_returned_orders
+        tests: [not_null]
+      - name: lifetime_returned_revenue
+        tests: [not_null]
