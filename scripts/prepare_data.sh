@@ -6,7 +6,16 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-ZIP="${THELOOK_ZIP:-$HOME/Downloads/looker-ecommerce-bigquery-dataset.zip}"
+ZIP="${1:-${THELOOK_ZIP:-}}"
+if [[ -z "$ZIP" ]]; then
+  echo "usage: $0 /path/to/looker-ecommerce-bigquery-dataset.zip" >&2
+  echo "   or: THELOOK_ZIP=/path/to/zip $0" >&2
+  exit 1
+fi
+if [[ ! -f "$ZIP" ]]; then
+  echo "zip not found: $ZIP" >&2
+  exit 1
+fi
 FILES=(distribution_centers events inventory_items order_items orders products users)
 
 mkdir -p data
